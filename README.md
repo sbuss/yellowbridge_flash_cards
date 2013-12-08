@@ -13,4 +13,4 @@ pip install -r requirements.txt
 python scrape.py
 ```
 
-The above checks out & installs dependencies, as well as generate 'deck.txt'.
+The above checks out & installs dependencies, as well as generates `deck.txt`.
