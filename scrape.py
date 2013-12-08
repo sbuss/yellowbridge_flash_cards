@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
-import re
-
+import demjson
 import requests
 
 from deck import Card, Lesson
@@ -17,31 +16,27 @@ def build_url(lesson_number):
     return url.format(lesson_number=lesson_number)
 
 
-def card_from_raw_data(data):
-    traditional_character_pattern = re.compile(r'tc:"([^"]+)"')
-    simplified_character_pattern = re.compile(r'sc:"([^"]+)"')
-    english_pattern = re.compile(r'en:"([^"]+)"')
-    pinyin_pattern = re.compile(r'py:"([^"]+)"')
-    pronunciation_pattern = re.compile(r'pn:"([^"]+)"')
-    lesson_pattern = re.compile(r'rf:"([^"]+)"')
-    df_pattern = re.compile(r'df:(\d+)')
+def card_from_json(data):
     card = Card(
-        english=english_pattern.findall(data)[0],
-        traditional_character=traditional_character_pattern.findall(data)[0],
-        simplified_character=simplified_character_pattern.findall(data)[0],
-        pinyin=pinyin_pattern.findall(data)[0],
-        pronunciation=pronunciation_pattern.findall(data)[0],
-        lesson=lesson_pattern.findall(data)[0],
-        df=df_pattern.findall(data)[0])
+        english=data['en'],
+        traditional_character=data['tc'],
+        simplified_character=data['sc'],
+        pinyin=data['py'],
+        pronunciation=data['pn'],
+        lesson=data['rf'],
+        df=data['df'],)
     return card
 
 
 def get_cards(url):
     response = requests.get(url)
     data = response.content
+    data = data.strip("var cardDeck = ")
+    data = data.rstrip(";var loggedIn=false;var incTooBig=false;finishInit();")
+    json = demjson.decode(data)
     cards = []
-    for line in data.split("},{"):
-        card = card_from_raw_data(line.decode('utf8'))
+    for datum in json:
+        card = card_from_json(datum)
         cards.append(card)
     return cards
 
@@ -64,7 +59,8 @@ def lesson_to_tsv(lesson):
             characters=characters,
             pinyin=card.pinyin,
             english=card.english,
-            tags=u"IC3_LEVEL_2_LESSON_%s" % lesson.chapter).encode('utf8'))
+            tags=u"IC3_Level_2_Lesson_%s" % lesson.chapter).encode('utf8').
+            replace('\\"', '"'))
     return lines
 
 
